@@ -1,32 +1,23 @@
 const express = require('express');
+const mysql = require('mysql2');
+
 const app = express();
-const db = require('./persistence');
-const getItems = require('./routes/getItems');
-const addItem = require('./routes/addItem');
-const updateItem = require('./routes/updateItem');
-const deleteItem = require('./routes/deleteItem');
+const port = 3000;
 
-app.use(express.json());
-app.use(express.static(__dirname + '/static'));
-
-app.get('/items', getItems);
-app.post('/items', addItem);
-app.put('/items/:id', updateItem);
-app.delete('/items/:id', deleteItem);
-
-db.init().then(() => {
-    app.listen(3000, () => console.log('Listening on port 3000'));
-}).catch((err) => {
-    console.error(err);
-    process.exit(1);
+const db = mysql.createConnection({
+  host: 'db',      // docker-compose içindeki servis adı!
+  user: 'root',
+  password: '123456',
+  database: 'uygulama'
 });
 
-const gracefulShutdown = () => {
-    db.teardown()
-        .catch(() => {})
-        .then(() => process.exit());
-};
+app.get('/', (req, res) => {
+  db.query('SELECT NOW()', (err, result) => {
+    if (err) return res.send('MySQL bağlantı hatası!');
+    res.send(`MySQL bağlantısı başarılı ✅ Zaman: ${result[0]['NOW()']}`);
+  });
+});
 
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGUSR2', gracefulShutdown); // Sent by nodemon
+app.listen(port, () => {
+  console.log(`Uygulama ${port} portunda çalışıyor.`);
+});
